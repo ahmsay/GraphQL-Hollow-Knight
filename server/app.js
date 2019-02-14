@@ -5,10 +5,11 @@ const mongoose = require('mongoose');
 
 const app = express();
 
-mongoose.connect('mongodb+srv://testuser:testpassword@graphqltest-doplt.mongodb.net/test?retryWrites=true');
+mongoose.connect('mongodb+srv://paleKing:theWhiteLady@hollowknightgraphql-doplt.mongodb.net/HollowKnight?retryWrites=true', { useNewUrlParser: true });
 mongoose.connection.once('open', () => {
   console.log('Connected to database.');
 });
+mongoose.set('useFindAndModify', false);
 
 app.use('/graphql', graphqlHTTP({
   schema,

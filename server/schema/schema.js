@@ -1,33 +1,55 @@
 const graphql = require('graphql');
-const Book = require('../models/book');
-const Author = require('../models/author');
+const Boss = require('../models/boss');
+const Tradable = require('../models/tradable');
+const Location = require('../models/location');
 const { GraphQLObjectType, GraphQLString, GraphQLSchema, GraphQLID, GraphQLInt, GraphQLList, GraphQLNonNull } = graphql;
 
-const BookType = new GraphQLObjectType({
-  name: 'Book',
+const BossType = new GraphQLObjectType({
+  name: 'Boss',
   fields: () => ({
     id: { type: GraphQLID },
     name: { type: GraphQLString },
-    genre: { type: GraphQLString },
-    author: {
-      type: AuthorType,
-      resolve(parent, args){
-        return Author.findById(parent.authorId);
+    health: { type: GraphQLInt },
+    location: {
+      type: LocationType,
+      resolve(parent, args) {
+        return Location.findById(parent.locationId);
       }
-    }
+    },
+    reward: { type: GraphQLString }
   })
 });
 
-const AuthorType = new GraphQLObjectType({
-  name: 'Author',
+const TradableType = new GraphQLObjectType({
+  name: 'Tradable',
   fields: () => ({
     id: { type: GraphQLID },
     name: { type: GraphQLString },
-    age: { type: GraphQLInt },
-    books: {
-      type: new GraphQLList(BookType),
-      resolve(parent, args){
-        return Book.find({ authorId: parent.id });
+    locations: {
+      type: new GraphQLList(LocationType),
+      resolve(parent, args) {
+        return Location.find({ _id: parent.locationIds });
+      }
+    },
+    found: { type: GraphQLInt }
+  })
+});
+
+const LocationType = new GraphQLObjectType({
+  name: 'Location',
+  fields: () => ({
+    id: { type: GraphQLID },
+    name: { type: GraphQLString },
+    tradables: {
+      type: new GraphQLList(TradableType),
+      resolve(parent, args) {
+        return Tradable.find({ locationIds: parent.id });
+      }
+    },
+    bosses: {
+      type: new GraphQLList(BossType),
+      resolve(parent, args) {
+        return Boss.find({ locationId: parent.id });
       }
     }
   })
@@ -36,30 +58,43 @@ const AuthorType = new GraphQLObjectType({
 const RootQuery = new GraphQLObjectType({
   name: 'RootQueryType',
   fields: {
-    book: {
-      type: BookType,
+    boss: {
+      type: BossType,
       args: { id: { type: GraphQLID } },
-      resolve(parent, args){
-        return Book.findById(args.id);
+      resolve(parent, args) {
+        return Boss.findById(args.id);
       }
     },
-    author: {
-      type: AuthorType,
+    tradable: {
+      type: TradableType,
       args: { id: { type: GraphQLID } },
-      resolve(parent, args){
-        return Author.findById(args.id);
+      resolve(parent, args) {
+        return Tradable.findById(args.id);
       }
     },
-    books: {
-      type: new GraphQLList(BookType),
-      resolve(parent, args){
-        return Book.find();
+    location: {
+      type: LocationType,
+      args: { id: { type: GraphQLID } },
+      resolve(parent, args) {
+        return Location.findById(args.id);
       }
     },
-    authors: {
-      type: new GraphQLList(AuthorType),
-      resolve(parent, args){
-        return Author.find();
+    bosses: {
+      type: new GraphQLList(BossType),
+      resolve(parent, args) {
+        return Boss.find();
+      }
+    },
+    tradables: {
+      type: new GraphQLList(TradableType),
+      resolve(parent, args) {
+        return Tradable.find();
+      }
+    },
+    locations: {
+      type: new GraphQLList(LocationType),
+      resolve(parent, args) {
+        return Location.find();
       }
     }
   }
@@ -68,34 +103,112 @@ const RootQuery = new GraphQLObjectType({
 const Mutation = new GraphQLObjectType({
   name: 'Mutation',
   fields: {
-    addAuthor: {
-      type: AuthorType,
+    addBoss: {
+      type: BossType,
       args: {
         name: { type: new GraphQLNonNull(GraphQLString) },
-        age: { type: new GraphQLNonNull(GraphQLInt) }
+        health: { type: new GraphQLNonNull(GraphQLInt) },
+        locationId: { type: new GraphQLNonNull(GraphQLString) },
+        reward: { type: GraphQLString }
       },
-      resolve(parent, args){
-        let author = new Author({
+      resolve(parent, args) {
+        let boss = new Boss({
           name: args.name,
-          age: args.age
+          health: args.health,
+          locationId: args.locationId,
+          reward: args.reward
         });
-        return author.save();
+        return boss.save();
       }
     },
-    addBook: {
-      type: BookType,
+    addTradable: {
+      type: TradableType,
       args: {
         name: { type: new GraphQLNonNull(GraphQLString) },
-        genre: { type: new GraphQLNonNull(GraphQLString) },
-        authorId: { type: new GraphQLNonNull(GraphQLID) }
+        locationIds: { type: new GraphQLNonNull(GraphQLList(GraphQLString)) },
+        found: { type: new GraphQLNonNull(GraphQLInt) }
+      },
+      resolve(parent, args) {
+        let tradable = new Tradable({
+          name: args.name,
+          locationIds: args.locationIds,
+          found: args.found
+        });
+        return tradable.save();
+      }
+    },
+    addLocation: {
+      type: LocationType,
+      args: {
+        name: { type: new GraphQLNonNull(GraphQLString) }
+      },
+      resolve(parent, args) {
+        let location = new Location({
+          name: args.name
+        });
+        return location.save();
+      }
+    },
+    editBoss: {
+      type: BossType,
+      args: {
+        id: { type: new GraphQLNonNull(GraphQLID) },
+        name: { type: GraphQLString },
+        health: { type: GraphQLInt },
+        locationId: { type: GraphQLString },
+        reward: { type: GraphQLString }
       },
       resolve(parent, args){
-        let book = new Book({
-          name: args.name,
-          genre: args.genre,
-          authorId: args.authorId
-        });
-        return book.save();
+        return Boss.findByIdAndUpdate(args.id, args, {new: true});
+      }
+    },
+    editTradable: {
+      type: TradableType,
+      args: {
+        id: { type: new GraphQLNonNull(GraphQLID) },
+        name: { type: GraphQLString },
+        locationIds: { type: new GraphQLList(GraphQLString) },
+        found: { type: GraphQLInt }
+      },
+      resolve(parent, args){
+        return Tradable.findByIdAndUpdate(args.id, args, {new: true});
+      }
+    },
+    editLocation: {
+      type: LocationType,
+      args: {
+        id: { type: new GraphQLNonNull(GraphQLID) },
+        name: { type: GraphQLString }
+      },
+      resolve(parent, args){
+        return Location.findByIdAndUpdate(args.id, args, {new: true});
+      }
+    },
+    deleteBoss: {
+      type: BossType,
+      args: {
+        id: { type: new GraphQLNonNull(GraphQLID) }
+      },
+      resolve(parent, args) {
+        return Boss.findByIdAndRemove(args.id);
+      }
+    },
+    deleteTradable: {
+      type: TradableType,
+      args: {
+        id: { type: new GraphQLNonNull(GraphQLID) }
+      },
+      resolve(parent, args) {
+        return Tradable.findByIdAndRemove(args.id);
+      }
+    },
+    deleteLocation: {
+      type: LocationType,
+      args: {
+        id: { type: new GraphQLNonNull(GraphQLID) }
+      },
+      resolve(parent, args) {
+        return Location.findByIdAndRemove(args.id);
       }
     }
   }
