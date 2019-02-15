@@ -11,8 +11,6 @@ mongoose.connection.once('open', () => {
 });
 mongoose.set('useFindAndModify', false);
 
-app.use(express.static('public'));
-
 app.use('/graphql', graphqlHTTP({
   schema,
   graphiql: true
@@ -21,7 +19,9 @@ app.use('/graphql', graphqlHTTP({
 const port = process.env.PORT || 4000;
 
 app.get('/', function (req, res) {
-  res.send("<div>Click <a href='http://localhost:" + port + "/graphql'>here</a> to use the API.</div>");
+  let content = "<h1>Hollow Knight GraphQL API</h1>" +
+  "<span>Click <a href='http://localhost:" + port + "/graphql'>here</a> to use the API.</span>";
+  res.send(content);
 });
 
 app.listen(port, () => {
