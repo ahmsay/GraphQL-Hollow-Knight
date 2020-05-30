@@ -1,5 +1,5 @@
 # Hollow Knight GraphQL
-This is a GraphQL API providing information about a video game named Hollow Knight. The data is fetched from MongoDB.</br>
+This is a GraphQL API providing information about a video game named Hollow Knight.</br>
 Try it on https://hollow-knight-gql.herokuapp.com/graphql
 
 <p>
